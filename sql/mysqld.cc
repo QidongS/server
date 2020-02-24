@@ -1858,7 +1858,7 @@ extern "C" void unireg_abort(int exit_code)
 
   if (opt_help)
     usage();
-  if (exit_code)
+  else if (exit_code)
     sql_print_error("Aborting");
   /* Don't write more notes to the log to not hide error message */
   disable_log_notes= 1;
@@ -8511,8 +8511,8 @@ static void option_error_reporter(enum loglevel level, const char *format, ...)
   va_start(args, format);
 
   /* Don't print warnings for --loose options during bootstrap */
-  if (level == ERROR_LEVEL || !opt_bootstrap ||
-      global_system_variables.log_warnings)
+  if (level == ERROR_LEVEL ||
+      (!opt_bootstrap && global_system_variables.log_warnings > 1))
   {
     vprint_msg_to_log(level, format, args);
   }
