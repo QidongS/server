@@ -16411,34 +16411,34 @@ void ha_mroonga::change_table_ptr(TABLE *table_arg, TABLE_SHARE *share_arg)
   DBUG_VOID_RETURN;
 }
 
-bool ha_mroonga::wrapper_primary_key_is_clustered()
+bool ha_mroonga::wrapper_is_clustering_key(uint index) const
 {
   MRN_DBUG_ENTER_METHOD();
   bool is_clustered;
   MRN_SET_WRAP_SHARE_KEY(share, table->s);
   MRN_SET_WRAP_TABLE_KEY(this, table);
-  is_clustered = wrap_handler->primary_key_is_clustered();
+  is_clustered = wrap_handler->is_clustering_key(index);
   MRN_SET_BASE_SHARE_KEY(share, table->s);
   MRN_SET_BASE_TABLE_KEY(this, table);
   DBUG_RETURN(is_clustered);
 }
 
-bool ha_mroonga::storage_primary_key_is_clustered()
+bool ha_mroonga::storage_is_clustering_key(uint index) const
 {
   MRN_DBUG_ENTER_METHOD();
-  bool is_clustered = handler::primary_key_is_clustered();
+  bool is_clustered = handler::is_clustering_key(index);
   DBUG_RETURN(is_clustered);
 }
 
-bool ha_mroonga::primary_key_is_clustered()
+bool ha_mroonga::is_clustering_key(uint index) const
 {
   MRN_DBUG_ENTER_METHOD();
   bool is_clustered;
   if (share && share->wrapper_mode)
   {
-    is_clustered = wrapper_primary_key_is_clustered();
+    is_clustered = wrapper_is_clustering_key(index);
   } else {
-    is_clustered = storage_primary_key_is_clustered();
+    is_clustered = storage_is_clustering_key(index);
   }
   DBUG_RETURN(is_clustered);
 }

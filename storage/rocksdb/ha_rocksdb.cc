@@ -11332,6 +11332,12 @@ ulonglong ha_rocksdb::table_flags() const
               HA_TABLE_SCAN_ON_INDEX);
 }
 
+bool ha_rocksdb::is_clustering_key(uint index) const
+{
+    DBUG_ENTER_FUNC();
+
+    DBUG_RETURN(table->s->primary_key == index);
+}
 
 
 /**

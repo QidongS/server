@@ -5114,10 +5114,10 @@ Determines if the primary key is clustered index.
 @return true */
 
 bool
-ha_innobase::primary_key_is_clustered()
+ha_innobase::is_clustering_key(uint index) const
 /*===================================*/
 {
-	return(true);
+	return (table->s->primary_key == index);
 }
 
 /** Normalizes a table name string.

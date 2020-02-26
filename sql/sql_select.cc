@@ -13139,8 +13139,7 @@ make_join_readinfo(JOIN *join, ulonglong options, uint no_jbuf_after)
                 See bug #26447: "Using the clustered index for a table scan
                 is always faster than using a secondary index".
               */
-              if (table->s->primary_key != MAX_KEY &&
-                  table->file->primary_key_is_clustered())
+              if (table->file->ha_is_clustering_key(table->s->primary_key))
                 tab->index= table->s->primary_key;
               else
 #endif
@@ -23449,8 +23448,7 @@ check_reverse_order:
           if the table is accessed by the primary key
         */
         if (tab->rowid_filter &&
-            tab->index == table->s->primary_key &&
-            table->file->primary_key_is_clustered())
+            table->file->is_clustering_key(tab->index))
 	{
           tab->range_rowid_filter_info= 0;
           delete tab->rowid_filter;

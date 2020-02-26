@@ -501,11 +501,7 @@ public:
     DBUG_RETURN(&key_map_full);
   }
 
-  bool primary_key_is_clustered() override {
-    DBUG_ENTER_FUNC();
-
-    DBUG_RETURN(true);
-  }
+  bool is_clustering_key(uint index) const override;
 
   bool should_store_row_debug_checksums() const {
     return m_store_row_debug_checksums && (rand() % 100 < m_checksums_pct);

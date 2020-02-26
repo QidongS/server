@@ -7788,7 +7788,7 @@ double ha_tokudb::scan_time() {
     DBUG_RETURN(ret_val);
 }
 
-bool ha_tokudb::is_clustering_key(uint index)
+bool ha_tokudb::is_clustering_key(uint index) const
 {
     return index == primary_key || key_is_clustering(&table->key_info[index]);
 }

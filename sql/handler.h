@@ -4107,20 +4107,19 @@ public:
   }
 
  /*
-   Check if the primary key (if there is one) is a clustered and a
-   reference key. This means:
+   Check if the key is a clustered and a reference key. This means:
 
    - Data is stored together with the primary key (no secondary lookup
      needed to find the row data). The optimizer uses this to find out
      the cost of fetching data.
-   - The primary key is part of each secondary key and is used
+   - The key is part of each secondary key and is used
      to find the row data in the primary index when reading trough
      secondary indexes.
    - When doing a HA_KEYREAD_ONLY we get also all the primary key parts
      into the row. This is critical property used by index_merge.
 
    All the above is usually true for engines that store the row
-   data in the primary key index (e.g. in a b-tree), and use the primary
+   data in the primary key index (e.g. in a b-tree), and use the key
    key value as a position().  InnoDB is an example of such an engine.
 
    For such a clustered primary key, the following should also hold:
@@ -4130,7 +4129,16 @@ public:
    @retval TRUE   yes
    @retval FALSE  No.
  */
- virtual bool primary_key_is_clustered() { return FALSE; }
+ virtual bool ha_is_clustering_key(uint index) const
+ {
+   /*
+     We have to check for MAX_INDEX as table->s->primary_key can be
+     MAX_KEY in the case where there is no primary key.
+   */
+   return index != MAX_KEY && is_clustering_key(index);
+ }
+ virtual bool is_clustering_key(uint index) const { return FALSE; }
+
  virtual int cmp_ref(const uchar *ref1, const uchar *ref2)
  {
    return memcmp(ref1, ref2, ref_length);
@@ -4859,8 +4867,6 @@ public:
   { DBUG_ASSERT(ht); return partition_ht()->flags & HTON_NATIVE_SYS_VERSIONING; }
   virtual void update_partition(uint	part_id)
   {}
-
-  virtual bool is_clustering_key(uint index) { return false; }
 
   /**
     Some engines can perform column type conversion with ALGORITHM=INPLACE.

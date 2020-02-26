@@ -264,7 +264,7 @@ public:
 		qc_engine_callback*	call_back,
 		ulonglong*		engine_data) override;
 
-	bool primary_key_is_clustered() override;
+	bool is_clustering_key(uint index) const override;
 
 	int cmp_ref(const uchar* ref1, const uchar* ref2) override;
 
