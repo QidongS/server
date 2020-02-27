@@ -1432,6 +1432,13 @@ public:
   */
   virtual uint make_packed_sort_key(uchar *buff,
                                     const SORT_FIELD_ATTR *sort_field);
+  /*
+    Compare two packed sort keys
+      @param a      Pointer to key
+      @param a_len  OUT The length of the value stored. This is only
+                        reliable when a compares as equal to b.
+    The same for b.
+  */
   virtual int compare_packed_keys(uchar *a, size_t *a_len,
                                   uchar *b, size_t *b_len,
                                   const SORT_FIELD *sortorder) const;

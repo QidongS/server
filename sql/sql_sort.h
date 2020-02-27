@@ -262,10 +262,6 @@ public:
     DBUG_ASSERT(!arr.is_null());
   }
 
-  SORT_FIELD *begin() { return sortorder.begin(); }
-  SORT_FIELD *end()   { return sortorder.end(); }
-  uint size()       { return static_cast<uint>(end() - begin()); }
-
   SORT_FIELD *begin() const { return sortorder.begin(); }
   SORT_FIELD *end()   const { return sortorder.end(); }
   size_t size()       const { return sortorder.size(); }
@@ -323,7 +319,11 @@ private:
   Sort_keys_array sortorder;        // Array of columns in the sort order
   bool m_using_packed_sortkeys;     // Are we packing sort keys
   uint size_of_packable_fields;     // Total length bytes for packable columns
-  // orignal sort length when we store real values for sort key
+
+  /*
+    The length that would be needed if we stored non-packed mem-comparable
+    images of fields?
+  */
   uint sort_length;
   // order by strategy used
   enum sort_method_t order_by_type;

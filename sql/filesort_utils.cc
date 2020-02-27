@@ -186,7 +186,7 @@ void Filesort_buffer::sort_buffer(const Sort_param *param, uint count)
   }
   
   qsort2_cmp cmp_func= param->using_packed_sortkeys() ?
-                       get_packed_keys_compare_ptr(size) :
+                       get_packed_keys_compare_ptr() :
                        get_ptr_compare(size);
 
   my_qsort2(m_sort_keys, count, sizeof(uchar*), cmp_func,

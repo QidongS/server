@@ -280,6 +280,6 @@ private:
 };
 
 int compare_packed_keys(void *sort_keys, unsigned char **a, unsigned char **b);
-qsort2_cmp get_packed_keys_compare_ptr(size_t size __attribute__((unused)));
+qsort2_cmp get_packed_keys_compare_ptr();
 
 #endif  // FILESORT_UTILS_INCLUDED

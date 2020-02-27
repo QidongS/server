@@ -63,7 +63,7 @@ static Addon_fields *get_addon_fields(TABLE *table, uint sortlength,
 static bool check_if_pq_applicable(Sort_param *param, SORT_INFO *info,
                                    TABLE *table,
                                    ha_rows records, size_t memory_available);
-
+// @param sortlen  [Maximum] length of the sort key
 void Sort_param::init_for_filesort(uint sortlen, TABLE *table,
                                    ha_rows maxrows, bool sort_positions)
 {
@@ -491,6 +491,13 @@ void Filesort::cleanup()
 }
 
 
+/*
+  Create the Sort_keys array and fill the sort_keys[i]->{item|field}.
+
+  This indicates which field/item values will be used as sort keys.
+  Attributes like lengths are not filled yet.
+*/
+
 Sort_keys*
 Filesort::make_sortorder(THD *thd, JOIN *join, table_map first_table_bit)
 {
@@ -498,7 +505,6 @@ Filesort::make_sortorder(THD *thd, JOIN *join, table_map first_table_bit)
   SORT_FIELD *sort,*pos;
   ORDER *ord;
   DBUG_ENTER("make_sortorder");
-
 
   count=0;
   for (ord = order; ord; ord= ord->next)
@@ -1810,7 +1816,10 @@ void reuse_freed_buff(QUEUE *queue, Merge_chunk *reuse, uint key_length)
   @param lastbuff     OUT Store here BUFFPEK describing data written to to_file
   @param Fb           First element in source BUFFPEKs array
   @param Tb           Last element in source BUFFPEKs array
-  @param flag
+  @param flag         0 <=> write {sort_key, addon_fields} pairs as further
+                            sorting will be performed
+                      1 <=> write just addon_fields as this is the final
+                            merge pass
 
   @retval
     0      OK
@@ -1870,7 +1879,7 @@ bool merge_buffers(Sort_param *param, IO_CACHE *from_file,
   {
     if (param->using_packed_sortkeys())
     {
-      cmp= get_packed_keys_compare_ptr(sort_length);
+      cmp= get_packed_keys_compare_ptr();
       first_cmp_arg= (void*) param;
     }
     else
@@ -2214,11 +2223,13 @@ Type_handler_decimal_result::sort_length(THD *thd,
   @param s_length	          Number of items to sort
   @param[out] multi_byte_charset Set to 1 if we are using multi-byte charset
                                  (In which case we have to use strxnfrm())
-  @allow_packing_for_sortkeys [out]  set to false if packing sort keys is not
+  @param allow_packing_for_sortkeys [out]  set to false if packing sort keys is not
                                      allowed
 
   @note
-    sortorder->length is updated for each sort item.
+   * sortorder->length and other members are updated for each sort item.
+   * TODO what is the meaning of this value if some fields are using packing while
+     others are not?
 
   @return
     Total length of sort buffer in bytes
@@ -2756,18 +2767,23 @@ Type_handler_string_result::compare_packed_keys(uchar *a, size_t *a_len,
                                              uchar *b, size_t *b_len,
                                              const SORT_FIELD *sortorder)const
 {
-  return compare_packed_sort_keys(sortorder->item->collation.collation,
-                                  a, a_len, b, b_len, sortorder,
-                                  sortorder->item->maybe_null);
+  return compare_packed_varstrings(sortorder->item->collation.collation,
+                                   a, a_len, b, b_len, sortorder,
+                                   sortorder->item->maybe_null);
 }
 
+
+/*
+  The default implementation assumes values are fixed-size and compared with
+  memcmp.
+*/
 int
 Type_handler::compare_packed_keys(uchar *a, size_t *a_len,
                                   uchar *b, size_t *b_len,
                                   const SORT_FIELD *sortorder)const
 {
-  return compare_packed_sort_keys(a, a_len, b, b_len, sortorder,
-                                  sortorder->item->maybe_null);
+  return compare_packed_fixed_size_vals(a, a_len, b, b_len, sortorder,
+                                        sortorder->item->maybe_null);
 }
 
 
@@ -2826,24 +2842,36 @@ bool check_if_packing_possible(THD *thd, CHARSET_INFO *cs,
   Compare function used for packing sort keys
 */
 
-qsort2_cmp get_packed_keys_compare_ptr(size_t size __attribute__((unused)))
+qsort2_cmp get_packed_keys_compare_ptr()
 {
   return (qsort2_cmp) compare_packed_keys;
 }
 
 
-int compare_packed_sort_keys(CHARSET_INFO *cs, uchar *a, size_t *a_len,
-                             uchar *b, size_t *b_len,
-                             const SORT_FIELD_ATTR *sort_field,
-                             bool maybe_null)
+/*
+  Compare two varstrings.
+
+  The strings are in this data format:
+
+    [null_byte] [length of string + suffix_bytes] [the string] [suffix_bytes]
+
+  suffix_bytes are used only for binary columns.
+*/
+
+int compare_packed_varstrings(CHARSET_INFO *cs, uchar *a, size_t *a_len,
+                              uchar *b, size_t *b_len,
+                              const SORT_FIELD_ATTR *sort_field,
+                              bool maybe_null)
 {
   int retval;
   size_t a_length, b_length;
   if (maybe_null)
   {
-    *a_len= *b_len= 1;
+    *a_len= *b_len= 1; // NULL bytes are always stored
     if (*a != *b)
     {
+      // Note we don't return a proper value in *{a|b}_len for the non-NULL
+      // value but that's ok
       if (*a == 0)
         return -1;
       else
@@ -2884,10 +2912,17 @@ int compare_packed_sort_keys(CHARSET_INFO *cs, uchar *a, size_t *a_len,
 }
 
 
-int compare_packed_sort_keys(uchar *a, size_t *a_len,
-                             uchar *b, size_t *b_len,
-                             const SORT_FIELD_ATTR *sort_field,
-                             bool maybe_null)
+/*
+  A value comparison function that has a signature that's suitable for
+  comparing packed values, but actually compares fixed-size values with memcmp.
+
+  This is used for ordering fixed-size columns when the sorting procedure used
+  packed-value format.
+*/
+int compare_packed_fixed_size_vals(uchar *a, size_t *a_len,
+                                   uchar *b, size_t *b_len,
+                                   const SORT_FIELD_ATTR *sort_field,
+                                   bool maybe_null)
 {
   if (maybe_null)
   {
@@ -2962,7 +2997,7 @@ int compare_packed_keys(void *sort_param,
     }
 
     if (retval)
-        return sort_field->reverse ? -retval : retval;
+      return sort_field->reverse ? -retval : retval;
 
     a+= a_len;
     b+= b_len;
