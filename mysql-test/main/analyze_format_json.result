@@ -701,6 +701,7 @@ ANALYZE
       "r_used_priority_queue": false,
       "r_output_rows": 0,
       "r_buffer_size": "REPLACED",
+      "r_packed_keys": true,
       "temporary_table": {
         "filesort": {
           "sort_key": "(subquery#2)",

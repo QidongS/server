@@ -278,6 +278,8 @@ SORT_INFO *filesort(THD *thd, TABLE *table, Filesort *filesort,
       param.try_to_pack_sortkeys();
 
     param.try_to_pack_addons(thd->variables.max_length_for_sort_data);
+    tracker->report_data_format(param.using_packed_sortkeys(),
+                                param.using_packed_addons());
     param.using_pq= false;
 
     if ((multi_byte_charset || param.using_packed_sortkeys()) &&

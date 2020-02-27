@@ -78,6 +78,11 @@ void Filesort_tracker::print_json_members(Json_writer *writer)
     else
       writer->add_size(sort_buffer_size);
   }
+
+  if (r_packed_keys)
+    writer->add_member("r_packed_keys").add_bool(true);
+  if (r_packed_addon_fields)
+    writer->add_member("r_packed_addon_fields").add_bool(true);
 }
 
 void attach_gap_time_tracker(THD *thd, Gap_time_tracker *gap_tracker,
