@@ -331,20 +331,32 @@ private:
 
 
 /**
-  There are two record formats for sorting:
-    |<key a><key b>...|<rowid>|
-    /  sort_length    / ref_l /
+  The sort record format may use one of two formats for the non-sorted part of
+  the record:
 
-  or with "addon fields"
-    |<key a><key b>...|<null bits>|<field a><field b>...|
-    /  sort_length    /         addon_length            /
+  1. Use the rowid
+
+    |<sort_key>|   <rowid>  |
+    /          / ref_length /
+
+  2. Use "addon fields"
+
+    |<sort_key>|<null bits>|<field a><field b>...|
+    /          /         addon_length            /
 
   The packed format for "addon fields"
-    |<key a><key b>...|<length>|<null bits>|<field a><field b>...|
-    /  sort_length    /         addon_length                     /
+
+    |<sort_key>|<length>|<null bits>|<field a><field b>...|
+    /          /         addon_length                     /
+
+  <sort_key>  The key may use one of the two formats:
+              A. fixed-size mem-comparable form. The record is always
+                 sort_length bytes long.
+              B. "PackedKeyFormat" - the records are variable-size.
 
   <key>       Fields are fixed-size, specially encoded with
               Field::make_sort_key() so we can do byte-by-byte compare.
+
   <length>    Contains the *actual* packed length (after packing) of
               everything after the sort keys.
               The size of the length field is 2 bytes,
